@@ -18,7 +18,7 @@ class EventController
             exit;
         }
 
-        $handler = new EventHandler(__DIR__ . '/../storage/events.txt');
+        $handler = new EventHandler(__DIR__ . '/../../storage/events.txt');
 
         try {
             $result = $handler->handleEvent($data);
