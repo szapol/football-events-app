@@ -26,7 +26,6 @@ class EventHandler
         }
 
         $event = [
-            'type' => $data['type'],
             'timestamp' => time(),
             'data' => $data
         ];
