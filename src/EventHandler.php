@@ -2,6 +2,8 @@
 
 namespace App;
 
+use App\Enums\EventType;
+
 class EventHandler
 {
     private FileStorage $storage;
@@ -18,7 +20,11 @@ class EventHandler
         if (!isset($data['type'])) {
             throw new \InvalidArgumentException('Event type is required');
         }
-        
+
+        if (!in_array($data['type'], array_column(EventType::cases(), 'value'))) {
+            throw new \InvalidArgumentException('Invalid event type');
+        }
+
         $event = [
             'type' => $data['type'],
             'timestamp' => time(),
@@ -26,18 +32,19 @@ class EventHandler
         ];
         
         $this->storage->save($event);
-        
-        // Update statistics for foul events
-        if ($data['type'] === 'foul') {
-            if (!isset($data['match_id']) || !isset($data['team_id'])) {
-                throw new \InvalidArgumentException('match_id and team_id are required for foul events');
+
+        foreach (EventType::cases() as $eventType) {
+            if ($data['type'] === $eventType->value) {
+                if (!isset($data['match_id']) || !isset($data['team_id'])) {
+                    throw new \InvalidArgumentException('match_id and team_id are required for foul events');
+                }
+
+                $this->statisticsManager->updateTeamStatistics(
+                    $data['match_id'],
+                    $data['team_id'],
+                    $eventType->getPlural()
+                );
             }
-            
-            $this->statisticsManager->updateTeamStatistics(
-                $data['match_id'],
-                $data['team_id'],
-                'fouls'
-            );
         }
         
         return [
