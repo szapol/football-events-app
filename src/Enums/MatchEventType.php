@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum EventType: string
+enum MatchEventType: string
 {
     case Foul = 'foul';
     case Goal = 'goal';
@@ -10,8 +10,10 @@ enum EventType: string
     public function getPlural(): string
     {
         return match ($this) {
-            EventType::Foul => 'fouls',
-            EventType::Goal => 'goals',
+            MatchEventType::Foul => 'fouls',
+            MatchEventType::Goal => 'goals',
+
+            default => $this->value . 's',
         };
     }
 }

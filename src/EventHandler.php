@@ -2,7 +2,8 @@
 
 namespace App;
 
-use App\Enums\EventType;
+use App\Enums\MatchEventType;
+use App\Factories\MatchEventFactory;
 
 class EventHandler
 {
@@ -21,18 +22,15 @@ class EventHandler
             throw new \InvalidArgumentException('Event type is required');
         }
 
-        if (!in_array($data['type'], array_column(EventType::cases(), 'value'))) {
+        if (!in_array($data['type'], array_column(MatchEventType::cases(), 'value'))) {
             throw new \InvalidArgumentException('Invalid event type');
         }
 
-        $event = [
-            'timestamp' => time(),
-            'data' => $data
-        ];
+        $event = MatchEventFactory::fromData($data);
         
         $this->storage->save($event);
 
-        foreach (EventType::cases() as $eventType) {
+        foreach (MatchEventType::cases() as $eventType) {
             if ($data['type'] === $eventType->value) {
                 if (!isset($data['match_id']) || !isset($data['team_id'])) {
                     throw new \InvalidArgumentException('match_id and team_id are required for foul events');
