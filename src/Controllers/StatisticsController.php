@@ -9,7 +9,7 @@ class StatisticsController
 {
     public static function index(): void
     {
-        $statsManager = new StatisticsManager(__DIR__ . '/../storage/statistics.txt');
+        $statsManager = new StatisticsManager(__DIR__ . '/../../storage/statistics.txt');
 
         $matchId = $_GET['match_id'] ?? null;
         $teamId = $_GET['team_id'] ?? null;
