@@ -2,39 +2,36 @@
 
 namespace App;
 
+use App\Interfaces\MatchEventInterface;
+
 class StatisticsManager
 {
-    private FileStorage $storage;
-    private string $statsFile;
-    
-    public function __construct(string $statsFile = '../storage/statistics.txt')
+    private TextFileStorage $storage;
+
+    const string STATISTICS_FILE_PATH = __DIR__ . '/../storage/statistics.txt';
+
+    public function __construct(string $statisticsFilePath = self::STATISTICS_FILE_PATH)
     {
-        $this->storage = new FileStorage($statsFile);
-        $this->statsFile = $statsFile;
-        
-        $directory = dirname($statsFile);
-        if (!is_dir($directory)) {
-            mkdir($directory, 0777, true);
-        }
+        $this->storage = new TextFileStorage($statisticsFilePath);
     }
     
-    public function updateTeamStatistics(string $matchId, string $teamId, string $statType, int $value = 1): void
+    public function updateTeamStatistics(MatchEventInterface $event, string $statType, int $value = 1): void
     {
         $stats = $this->getStatistics();
-        
-        if (!isset($stats[$matchId])) {
-            $stats[$matchId] = [];
+
+        if (!isset($stats[$event->match_id])) {
+            $stats[$event->match_id] = [];
         }
         
-        if (!isset($stats[$matchId][$teamId])) {
-            $stats[$matchId][$teamId] = [];
+        if (!isset($stats[$event->match_id][$event->team_id])) {
+            $stats[$event->match_id][$event->team_id] = [];
         }
         
-        if (!isset($stats[$matchId][$teamId][$statType])) {
-            $stats[$matchId][$teamId][$statType] = 0;
+        if (!isset($stats[$event->match_id][$event->team_id][$statType])) {
+            $stats[$event->match_id][$event->team_id][$statType] = 0;
         }
         
-        $stats[$matchId][$teamId][$statType] += $value;
+        $stats[$event->match_id][$event->team_id][$statType] += $value;
         
         $this->saveStatistics($stats);
     }
@@ -53,16 +50,11 @@ class StatisticsManager
     
     private function getStatistics(): array
     {
-        if (!file_exists($this->statsFile)) {
-            return [];
-        }
-        
-        $content = file_get_contents($this->statsFile);
-        return json_decode($content, true) ?? [];
+        return $this->storage->getRaw();
     }
     
     private function saveStatistics(array $stats): void
     {
-        file_put_contents($this->statsFile, json_encode($stats, JSON_PRETTY_PRINT), LOCK_EX);
+        $this->storage->saveFromArray($stats);
     }
 }
