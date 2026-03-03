@@ -3,7 +3,7 @@
 namespace Tests;
 
 use App\EventHandler;
-use App\FileStorage;
+use App\TextFileStorage;
 use App\StatisticsManager;
 use PHPUnit\Framework\TestCase;
 
@@ -34,16 +34,18 @@ class EventHandlerTest extends TestCase
         
         $eventData = [
             'type' => 'goal',
-            'player' => 'John Doe',
+            'team_id' => 'gieksa',
+            'match_id' => 'jeden',
+            'scorer' => 'John Doe',
             'minute' => 23,
             'second' => 34
         ];
         
         $result = $handler->handleEvent($eventData);
-        
+
         $this->assertEquals('success', $result['status']);
-        $this->assertEquals('goal', $result['event']['type']);
-        $this->assertArrayHasKey('timestamp', $result['event']);
+        $this->assertEquals('goal', $result['event']->type);
+        $this->assertObjectHasProperty('timestamp', $result['event']);
     }
     
     public function testHandleEventWithoutType(): void
@@ -58,12 +60,16 @@ class EventHandlerTest extends TestCase
     
     public function testEventIsSavedToFile(): void
     {
-        $storage = new FileStorage($this->testFile);
+        $storage = new TextFileStorage($this->testFile);
         $handler = new EventHandler($this->testFile);
         
         $eventData = [
             'type' => 'goal',
-            'player' => 'Jane Smith'
+            'team_id' => 'gieksa',
+            'match_id' => 'dwa',
+            'player' => 'Grzegorz Goncerz',
+            'minute' => 88,
+            'second' => 14
         ];
         
         $handler->handleEvent($eventData);
@@ -92,7 +98,7 @@ class EventHandlerTest extends TestCase
         
         // Check that event was saved successfully
         $this->assertEquals('success', $result['status']);
-        $this->assertEquals('foul', $result['event']['type']);
+        $this->assertEquals('foul', $result['event']->type);
         
         // Check that statistics were updated
         $teamStats = $statisticsManager->getTeamStatistics('m1', 'arsenal');
@@ -108,6 +114,7 @@ class EventHandlerTest extends TestCase
         $eventData1 = [
             'type' => 'foul',
             'player' => 'John Doe',
+            'affectedPlayer' => 'Aa Bb',
             'team_id' => 'team_a',
             'match_id' => 'match_1',
             'minute' => 15,
@@ -117,6 +124,7 @@ class EventHandlerTest extends TestCase
         $eventData2 = [
             'type' => 'foul',
             'player' => 'Jane Smith',
+            'affectedPlayer' => 'Bb Aa',
             'team_id' => 'team_a',
             'match_id' => 'match_1',
             'minute' => 30,
@@ -130,11 +138,68 @@ class EventHandlerTest extends TestCase
         $teamStats = $statisticsManager->getTeamStatistics('match_1', 'team_a');
         $this->assertEquals(2, $teamStats['fouls']);
     }
-    
+
+    public function testHandleGoalEventUpdatesStatistics(): void
+    {
+        $statisticsManager = new StatisticsManager($this->testStatsFile);
+        $handler = new EventHandler($this->testFile, $statisticsManager);
+
+        $eventData = [
+            'type' => 'goal',
+            'scorer' => 'William Saliba',
+            'team_id' => 'arsenal',
+            'match_id' => 'm1',
+            'minute' => 45,
+            'second' => 34
+        ];
+
+        $result = $handler->handleEvent($eventData);
+
+        // Check that event was saved successfully
+        $this->assertEquals('success', $result['status']);
+        $this->assertEquals('goal', $result['event']->type);
+
+        // Check that statistics were updated
+        $teamStats = $statisticsManager->getTeamStatistics('m1', 'arsenal');
+        $this->assertArrayHasKey('goals', $teamStats);
+        $this->assertEquals(1, $teamStats['goals']);
+    }
+
+    public function testHandleMultipleGoalEventsIncrementsStatistics(): void
+    {
+        $statisticsManager = new StatisticsManager($this->testStatsFile);
+        $handler = new EventHandler($this->testFile, $statisticsManager);
+
+        $eventData1 = [
+            'type' => 'goal',
+            'scorer' => 'John Doe',
+            'team_id' => 'team_a',
+            'match_id' => 'match_1',
+            'minute' => 15,
+            'second' => 34
+        ];
+
+        $eventData2 = [
+            'type' => 'goal',
+            'scorer' => 'Jane Smith',
+            'team_id' => 'team_a',
+            'match_id' => 'match_1',
+            'minute' => 30,
+            'second' => 34
+        ];
+
+        $handler->handleEvent($eventData1);
+        $handler->handleEvent($eventData2);
+
+        // Check that statistics were incremented correctly
+        $teamStats = $statisticsManager->getTeamStatistics('match_1', 'team_a');
+        $this->assertEquals(2, $teamStats['goals']);
+    }
+
     public function testHandleFoulEventWithoutRequiredFields(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('match_id and team_id are required for foul events');
+        $this->expectExceptionMessage('match_id and team_id are required');
         
         $statisticsManager = new StatisticsManager($this->testStatsFile);
         $handler = new EventHandler($this->testFile, $statisticsManager);

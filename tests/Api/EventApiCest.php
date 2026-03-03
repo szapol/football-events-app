@@ -19,6 +19,7 @@ class EventApiCest
         $I->sendPOST('/event', [
             'type' => 'foul',
             'player' => 'William Saliba',
+            'affectedPlayer' => 'Saliba Saliba',
             'team_id' => 'arsenal',
             'match_id' => 'm1',
             'minute' => 45,
@@ -32,6 +33,28 @@ class EventApiCest
             'message' => 'Event saved successfully'
         ]);
         $I->seeResponseJsonMatchesJsonPath('$.event.type', 'foul');
+    }
+
+    public function testGoalEvent(ApiTester $I)
+    {
+        $I->haveHttpHeader('Content-Type', 'application/json');
+        $I->sendPOST('/event', [
+            'type' => 'goal',
+            'scorer' => 'William Saliba',
+            'assistingPlayer' => 'Saliba William',
+            'team_id' => 'manczester',
+            'match_id' => 'ch1m1',
+            'minute' => 45,
+            'second' => 34
+        ]);
+
+        $I->seeResponseCodeIs(201);
+        $I->seeResponseIsJson();
+        $I->seeResponseContainsJson([
+            'status' => 'success',
+            'message' => 'Event saved successfully'
+        ]);
+        $I->seeResponseJsonMatchesJsonPath('$.event.type', 'goal');
     }
 
     public function testFoulEventWithoutRequiredFields(ApiTester $I)
@@ -48,7 +71,7 @@ class EventApiCest
         $I->seeResponseCodeIs(400);
         $I->seeResponseIsJson();
         $I->seeResponseContainsJson([
-            'error' => 'match_id and team_id are required for foul events'
+            'error' => 'match_id and team_id are required'
         ]);
     }
 
