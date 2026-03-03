@@ -7,13 +7,15 @@ use App\Factories\MatchEventFactory;
 
 class EventHandler
 {
-    private FileStorage $storage;
+    private TextFileStorage $storage;
     private StatisticsManager $statisticsManager;
-    
-    public function __construct(string $storagePath, ?StatisticsManager $statisticsManager = null)
+
+    const string EVENTS_FILE_PATH = __DIR__ . '/../storage/events.txt';
+
+    public function __construct(string $eventsFile = self::EVENTS_FILE_PATH, ?StatisticsManager $statisticsManager = null)
     {
-        $this->storage = new FileStorage($storagePath);
-        $this->statisticsManager = $statisticsManager ?? new StatisticsManager(__DIR__ . '/../storage/statistics.txt');
+        $this->storage = new TextFileStorage($eventsFile);
+        $this->statisticsManager = $statisticsManager ?? new StatisticsManager();
     }
     
     public function handleEvent(array $data): array
@@ -26,19 +28,18 @@ class EventHandler
             throw new \InvalidArgumentException('Invalid event type');
         }
 
+        if (!isset($data['match_id']) || !isset($data['team_id'])) {
+            throw new \InvalidArgumentException('match_id and team_id are required');
+        }
+
         $event = MatchEventFactory::fromData($data);
-        
-        $this->storage->save($event);
+
+        $this->storage->addLine($event);
 
         foreach (MatchEventType::cases() as $eventType) {
             if ($data['type'] === $eventType->value) {
-                if (!isset($data['match_id']) || !isset($data['team_id'])) {
-                    throw new \InvalidArgumentException('match_id and team_id are required for foul events');
-                }
-
                 $this->statisticsManager->updateTeamStatistics(
-                    $data['match_id'],
-                    $data['team_id'],
+                    $event,
                     $eventType->getPlural()
                 );
             }
@@ -49,5 +50,10 @@ class EventHandler
             'message' => 'Event saved successfully',
             'event' => $event
         ];
+    }
+
+    public function listEvents(): array
+    {
+        return $this->storage->getAll();
     }
 }

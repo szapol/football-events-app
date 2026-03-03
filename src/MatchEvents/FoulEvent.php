@@ -6,7 +6,6 @@ use App\Interfaces\MatchEventInterface;
 
 class FoulEvent extends AbstractMatchEvent implements MatchEventInterface
 {
-    public string $team_id;
     public string $player;
     public string $affectedPlayer;
 
@@ -15,10 +14,13 @@ class FoulEvent extends AbstractMatchEvent implements MatchEventInterface
         $event = new static();
 
         $event->timestamp = time();
+        $event->type = $data['type'];
+        $event->team_id = $data['team_id'];
+        $event->match_id = $data['match_id'];
+
         $event->player = $data['player'] ?? '';
         $event->affectedPlayer = $data['affectedPlayer'] ?? '';
-        $event->team_id = $data['team_id'] ?? '';
-        $event->match_id = $data['match_id'] ?? '';
+
         $event->minute = $data['minute'] ?? null;
         $event->second = $data['second'] ?? null;
 
