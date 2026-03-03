@@ -7,7 +7,17 @@ use Exception;
 
 class EventController
 {
-    public static function index(): void
+
+    public static function index()
+    {
+        $events = (new EventHandler()->listEvents());
+
+        echo json_encode([
+            'events' => $events
+        ]);
+    }
+
+    public static function store(): void
     {
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
@@ -18,7 +28,7 @@ class EventController
             exit;
         }
 
-        $handler = new EventHandler(__DIR__ . '/../../storage/events.txt');
+        $handler = new EventHandler();
 
         try {
             $result = $handler->handleEvent($data);
